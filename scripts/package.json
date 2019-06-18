@@ -1,0 +1,30 @@
+{
+  "name": "toms-linkliste",
+  "version": "0.0.3",
+  "description": "Dieses Repository enthält den Code für ..Linkliste..",
+  "main": "read-google-spreadsheet.js",
+  "dependencies": {
+    "fs": "0.0.1-security",
+    "googleapis": "^39.2.0",
+    "md5": "^2.2.1",
+    "node-server-screenshot": "^0.2.1",
+    "sharp": "^0.21.3"
+  },
+  "devDependencies": {
+    "nanogen": "^0.4.2"
+  },
+  "scripts": {
+    "generate": "node read-google-spreadsheet.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tomsrocket/toms-linkliste.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/tomsrocket/toms-linkliste/issues"
+  },
+  "homepage": "https://github.com/tomsrocket/toms-linkliste#readme"
+}
