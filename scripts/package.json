@@ -14,7 +14,7 @@
     "nanogen": "^0.4.2"
   },
   "scripts": {
-    "generate": "node read-google-spreadsheet.js"
+    "generate": "node read-google-spreadsheet.js;node generate-thumbnails.js"
   },
   "repository": {
     "type": "git",

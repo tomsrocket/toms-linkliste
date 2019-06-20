@@ -16,10 +16,30 @@ const jpgQuality = 65;
         for (let i = 0; i < files.length; i++) {
             let file = files[i];
             if (file.match(/\.png$/i)) {
-                console.log("resizing to " + thumbnailWidth, file);
-                await convert(testFolder + "large/" + file, testFolder + "small/" + file.replace(".png", ".jpg"), { width: thumbnailWidth, height: 250 });
-                console.log("resizing to " + bigWidth, file);
-                await convert(testFolder + "large/" + file, testFolder + "medium/" + file.replace(".png", ".jpg"), { width: bigWidth} );
+                console.log(file);
+
+                var fileSizeInBytes = 0;
+                let newFile = "../content/images/" + file.replace(".png", ".jpg");
+                if (fs.existsSync(newFile)) {
+                    const stats = fs.statSync(newFile);
+                    fileSizeInBytes = stats.size; 
+                }
+                if (fileSizeInBytes < 50) {
+                    console.log(" - resizing to " + thumbnailWidth);
+                    await convert(testFolder + "large/" + file, newFile, { width: thumbnailWidth, height: 250 });
+                }
+                
+                fileSizeInBytes = 0;
+                newFile = testFolder + "medium/" + file.replace(".png", ".jpg");
+                if (fs.existsSync(newFile)) {
+                    const stats = fs.statSync(newFile);
+                    fileSizeInBytes = stats.size; 
+                }
+                if (fileSizeInBytes < 50) {
+                    console.log(" - resizing to " + bigWidth);
+                    await convert(testFolder + "large/" + file, newFile, { width: bigWidth });
+                }
+                                
             } 
         }
     } catch (err) {

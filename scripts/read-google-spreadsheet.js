@@ -9,7 +9,7 @@ var pageWidth = 1280;
 var pageHeight = 1380; // make longer screenshots so we can cut off the silly cookiehinweis
 
 var args = process.argv.slice(2);
-let numRowsToProcess = args[0] ? args[0] : 20;
+let numRowsToProcess = args[0] ? args[0] : 2000;
 
 
 console.log("Processing Rows:", numRowsToProcess);
@@ -45,8 +45,6 @@ console.log("");
 console.log("DONE");
 
 })();
-
-
 
 function start() {
   // Load client secrets from a local file.
@@ -121,7 +119,7 @@ async function processFile(row) {
     const category = row[3];
     const desc = row[6] ? row[6] : "";
     const mdfive = md5(row[2]);
-    const slug = title.toLowerCase().replace(/[^üöäßÄÖÜ\w\d]+/g, "-");
+    const slug = title.toLowerCase().replace(/[^üöäßÄÖÜ\w\d]+/g, "-").replace(/^-/, "");
     const categoryString = keywords.join('", "')
     const parts = date.match(/(\d+)/g);
     const jsDate = new Date(parts[2], parts[1]-1, parts[0]);
@@ -132,8 +130,8 @@ Date: ${isoDate}
 Category: ${category}
 Tags: "${categoryString}"
 Slug: ${slug}
-Cover: images/small/${slug}.png
-External: "${url}"
+Cover: images/${slug}.jpg
+External: ${url}
 
 ${desc}
 
