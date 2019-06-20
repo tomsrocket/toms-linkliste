@@ -7,7 +7,16 @@ var app = require("node-server-screenshot");
 
 var pageWidth = 1280;
 var pageHeight = 1380; // make longer screenshots so we can cut off the silly cookiehinweis
-        
+
+var args = process.argv.slice(2);
+let numRowsToProcess = args[0] ? args[0] : 20;
+
+
+console.log("Processing Rows:", numRowsToProcess);
+console.log("Use first command line argument for number of rows");
+
+
+
 // If modifying these scopes, delete token.json.
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly'];
 // The file token.json stores the user's access and refresh tokens, and is
@@ -15,16 +24,29 @@ const SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly'];
 // time.
 const TOKEN_PATH = 'config/token.json';
 let spreadsheetId = '';
+let spreadsheetRange = "";
+
+(async () => {
+
+  try {
+    // Load spreadsheet Id from config file
+    fs.readFile('config/config.json', (err, content) => {
+      if (err) return console.log('Error loading config file:', err);
+      const config = JSON.parse(content);
+      spreadsheetId = config.spreadsheetId;
+      spreadsheetRange = config.spreadsheetRange;
+      start();
+    });
+  } catch (err) {
+    console.error("Error reading file:", err);
+}
+
+console.log("");
+console.log("DONE");
+
+})();
 
 
-// Load spreadsheet Id from config file
-fs.readFile('config/config.json', (err, content) => {
-  if (err) return console.log('Error loading config file:', err);
-  const config = JSON.parse(content);
-  spreadsheetId = config.spreadsheetId;
-
-  start();
-});
 
 function start() {
   // Load client secrets from a local file.
@@ -85,114 +107,110 @@ function getNewToken(oAuth2Client, callback) {
 }
 
 
-/**
- * Prints the names and majors of students in a sample spreadsheet:
- * @see https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit
- * @param {google.auth.OAuth2} auth The authenticated Google OAuth client.
- */
- function listMajors(auth) {
-  const sheets = google.sheets({version: 'v4', auth});
-  sheets.spreadsheets.values.get({
-    spreadsheetId: spreadsheetId,
-    range: 'Allgemein!A2:G',
-  }, (err, res) => {
-    if (err) return console.log('The API returned an error: ' + err);
-    const rows = res.data.values;
-    if (rows.length) {
-      
-      /*
-      Datum	Url	Titel	Kategorie	Note	  Schlagworte	Beschreibung
-      0      1      2   3       4       5             6
-      [
-  '20.11.2018',
-   'https://www.kommune21.de/',
-  'Titel',
-   'Regen',
-  'Rekener Straße 234, 45721 Haltern am See',
-  'Nachrichten, Open Government',
-  'Nachrichtenmagazin für Open Data, Open Government, und Digitalisierung' ]
-*/
-      rows.map((row) => {
-        if (row[0]) {
-          const title = row[2];
-          const addr = row[4];
-          const keywords = row[5] ? row[5].split(", ") : [];
-          const date = row[0];
-          const url = row[1];
-          const category = row[3];
-          const desc = row[6];
-          const mdfive = md5(row[2]);
-          const slug = title.toLowerCase().replace(/[^üöäßÄÖÜ\w\d]+/g, "-");
-          const categoryString = keywords.join('", "')
-          const parts = date.match(/(\d+)/g);
-          const jsDate = new Date(parts[2], parts[1]-1, parts[0]);
-          const isoDate = jsDate.toISOString();
+    /*
+    Datum	Url	Titel	Kategorie	Note	  Schlagworte	Beschreibung
+    0      1      2   3       4       5             6
+    */
+async function processFile(row) {
+  if (row[0]) {
+    const title = row[2];
+    const addr = row[4];
+    const keywords = row[5] ? row[5].split(", ") : [];
+    const date = row[0];
+    const url = row[1];
+    const category = row[3];
+    const desc = row[6] ? row[6] : "";
+    const mdfive = md5(row[2]);
+    const slug = title.toLowerCase().replace(/[^üöäßÄÖÜ\w\d]+/g, "-");
+    const categoryString = keywords.join('", "')
+    const parts = date.match(/(\d+)/g);
+    const jsDate = new Date(parts[2], parts[1]-1, parts[0]);
+    const isoDate = jsDate.toISOString();
 
-          const content = `Title: ${title}
+    const content = `Title: ${title}
 Date: ${isoDate}
 Category: ${category}
 Tags: "${categoryString}"
 Slug: ${slug}
-Cover: /images/posts/${slug}.png
+Cover: images/small/${slug}.png
 External: "${url}"
 
 ${desc}
 
 `;
 
-          const filename = slug + ".md"
-          
-          const outputFile = "../content/" + filename;
-          fs.writeFile(outputFile, content, function(err) {
-            if(err) {
-                return console.log(err);
-            }
-            const filestats = fs.statSync(outputFile);
-            console.log("The file was saved:", outputFile, "size:", filestats.size);
-          }); 
+    const filename = slug + ".md"
+    
+    const outputFile = "../content/" + filename;
+    fs.writeFile(outputFile, content, function(err) {
+      if(err) {
+          return console.log(err);
+      }
+      const filestats = fs.statSync(outputFile);
+      console.log("The file was saved:", outputFile, "size:", filestats.size);
+    }); 
 
-             
-          const address = url;
-          var output = "../images/" + slug + ".png";
-          
-          var fileSizeInBytes = 0;
-          if (fs.existsSync(output)) {
-              const stats = fs.statSync(output);
-              fileSizeInBytes = stats.size; 
-          }
-          if (fileSizeInBytes > 50) {
-              
-              // screenshot is alread there
-              console.log("skipping", address, output);
-          } else {
-
-              // generate screenshot
-              loadPage(address, output);        
-          } 
-          
-        }
-      });
-
-
-
-    } else {
-      console.log('No data found.');
+       
+    const address = url;
+    var output = "../images/large/" + slug + ".png";
+    
+    var fileSizeInBytes = 0;
+    if (fs.existsSync(output)) {
+        const stats = fs.statSync(output);
+        fileSizeInBytes = stats.size; 
     }
-  });
+    if (fileSizeInBytes > 50) {
+        
+        // screenshot is alread there
+        console.log("skipping", address, output);
+    } else {
+
+        // generate screenshot
+        await loadPage(address, output);     
+        console.log("awaited", output);   
+    } 
+    
+  }
+}
+
+async function processFiles(err, res) {
+  if (err) return console.log('The API returned an error: ' + err);
+  const rows = res.data.values;
+  if (rows.length) {
+    rows.slice(0,numRowsToProcess).map(processFile);
+  } else {
+    console.log('No data found.');
+  }
 }
 
 
+/**
+ * Prints the names and majors of students in a sample spreadsheet:
+ * @see https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit
+ * @param {google.auth.OAuth2} auth The authenticated Google OAuth client.
+ */
+async function listMajors(auth) {
+  const sheets = google.sheets({version: 'v4', auth});
+  sheets.spreadsheets.values.get({
+    spreadsheetId: spreadsheetId,
+    range: spreadsheetRange,
+  }, processFiles);
+}
 
-function loadPage(address, output)
+        
+async function loadPage(address, output)
 {
     console.log("Processing", address);
-
+    
+    return new Promise(function(resolve, reject) {
+ 
         app.fromURL(address, output, {
             width: pageWidth,
             height: pageHeight, 
         }, function(){
             //an image of google.com has been saved at ./test.png
             console.log("wrote " + output);
+            resolve();
         });
-
+    });
 }
