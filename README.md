@@ -13,6 +13,13 @@ Theme configuration: https://github.com/demianbrecht/pelican-bold
 
 ## Dev instructions
 
+### Use Docker
+All the following commands can be executed with docker, e.g. regenerate the content with:
+
+    docker run -it --rm -v $(pwd):/srv/pelican mjjacko/pelican pelican content
+
+More information about that method here: https://github.com/matthewjackowski/pelican-dockerfile
+
 ### Setup 
 
 First configure google spreadsheet:
@@ -53,3 +60,4 @@ Preview your site by navigating to http://localhost:8000/ in your browser.
 From your site directory, run the following pelican command to generate your site into the output directory
 
     pelican content
+
