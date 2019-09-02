@@ -10,9 +10,6 @@
     "node-server-screenshot": "^0.2.1",
     "sharp": "^0.21.3"
   },
-  "devDependencies": {
-    "nanogen": "^0.4.2"
-  },
   "scripts": {
     "generate": "node read-google-spreadsheet.js;node generate-thumbnails.js"
   },
