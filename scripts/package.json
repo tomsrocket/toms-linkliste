@@ -4,7 +4,6 @@
   "description": "Dieses Repository enthält den Code für ..Linkliste..",
   "main": "read-google-spreadsheet.js",
   "dependencies": {
-    "fs": "0.0.1-security",
     "googleapis": "^39.2.0",
     "md5": "^2.2.1",
     "node-server-screenshot": "^0.2.1",
