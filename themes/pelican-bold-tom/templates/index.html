@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ SITENAME }} | {{ category|title }}{{ tag|title }}{% endblock %}
+{% block meta_description %}Blog posts related to {{ category }}{{ tag }}{% endblock %}
+{% block meta_keywords %}{{ category }}{{ tag }}{% endblock %}
+
+{% block section_title %}
+    {% if category %}
+        {{ category }}
+    {% elif tag %}
+        {{ tag }}
+    {% else %}
+        All Posts
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+<ol class="article-list">
+{% for article in articles_page.object_list %}
+    <li class="c-ha">
+        <article class="left-half">
+            <header>
+                <h2><a href="{{ SITEURL }}/{{ article.url }}">{{ article.title }}</a></h2>
+            </header>
+            <footer>
+                {{ article.locale_date }} 
+                | <a href="{{ SITEURL }}/{{ article.category.url }}">{{ article.category }}</a>
+                {% if article.tags and (article.tags|length > 1) %} | tags: {% for tag in article.tags %}<a href="{{ SITEURL }}/{{ tag.url }}">#{{ tag|replace('"','') }}</a> {% endfor %} {% endif %}
+
+            </footer>
+            <div class="content">
+                {{ article.summary }}
+            </div>
+        </article>
+        <div class="r-image right-half">
+            {% if article.cover %}<a href="{{ SITEURL }}/{{ article.url }}"><img class="cover" src="/{{ article.cover }}" alt="Screenshot von {{ article.external }}"></a>{% endif %}
+        </div>
+    </li>
+{% endfor %}
+</ol>
+{% include 'pagination.html' %}
+{% endblock %}

@@ -13,7 +13,7 @@ TIMEZONE = 'Europe/Paris'
 DEFAULT_LANG = 'de'
 
 #THEME = 'themes/pelican-alchemy/alchemy'
-THEME = 'themes/pelican-bold'
+THEME = 'themes/pelican-bold-tom'
 
 # Feed generation is usually not desired when developing
 FEED_ALL_ATOM = None
