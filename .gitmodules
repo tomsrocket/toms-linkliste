@@ -1,6 +1,3 @@
 [submodule "themes/pelican-alchemy"]
 	path = themes/pelican-alchemy
 	url = https://github.com/nairobilug/pelican-alchemy
-[submodule "themes/pelican-bold"]
-	path = themes/pelican-bold
-	url = https://github.com/demianbrecht/pelican-bold.git
