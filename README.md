@@ -10,42 +10,32 @@ Theme installation documentation: https://github.com/getpelican/pelican-themes
 
 Theme configuration: https://github.com/demianbrecht/pelican-bold
 
+# Setup
 
-## Dev instructions
+## First time setup 
 
-### Use Docker
-All the following commands can be executed with docker, e.g. regenerate the content with:
+    # do this only the first time
+    cp config/config.json.dist config/config.json
+    # Now put your published csv export url into config.json
 
-    docker run -it --rm -v $(pwd):/srv/pelican mjjacko/pelican pelican content
-
-More information about that method here: https://github.com/matthewjackowski/pelican-dockerfile
-
-### Setup 
-
-First configure google spreadsheet:
-
-* Die Datei _scripts/config/config.json_ anlegen mit der *spreadsheetId*
-* Anleitung befolgen um die Google Spreadsheet API nutzen zu können: https://developers.google.com/sheets/api/quickstart/nodejs
-  * Wichtig evtl.: Umgesetzt wurde es aktuell mit "googleapis@39"
-  * Die Config Dateien credentials.json und token.js müssen kopiert werden nach _scripts/config_
-
-In the end your config dir should look like this: 
-
-    scripts/config
-            config.json
-            credentials.json
-            token.json
-
-Then run the following to prepare the spreadsheet reader
-
-    cd scripts
+    git submodule init
+    git submodule update
+    
+    mkdir content
+    cd script
     npm install
-    npm run generate
 
-If you just want to re-read the information from the spreadsheet, enter
+## (Re-)generate the content
 
-    npm run generate
+    # do this to regenerate the content
+    cd scripts
+    node read-public-google-spreadsheet.js 2000
+    cd ..
+    docker run -it --rm -v $(pwd):/srv/pelican mjjacko/pelican pelican content
+    
+## Development instructions
 
+I recommend running _pelican_ in docker, read here: https://github.com/matthewjackowski/pelican-dockerfile
 
 ### Development mode
 

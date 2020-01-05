@@ -4,6 +4,8 @@
   "description": "Dieses Repository enthält den Code für ..Linkliste..",
   "main": "read-google-spreadsheet.js",
   "dependencies": {
+    "csv-parse": "^4.8.3",
+    "electron": "^7.1.5",
     "googleapis": "^39.2.0",
     "md5": "^2.2.1",
     "node-server-screenshot": "^0.2.1",
