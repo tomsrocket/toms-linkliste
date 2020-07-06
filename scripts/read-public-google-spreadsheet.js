@@ -2,8 +2,7 @@
 
 const fs = require('fs');
 const md5 = require('md5');
-const http = require('http');
-const https = require('https');
+const { http, https } = require('follow-redirects');
 const sharp = require('sharp');
 const csvParse = require('csv-parse')
 const screenshotApp = require("node-server-screenshot");
