@@ -1,2 +1,3 @@
 config/*.json
+config/config.deploy.sh
 node_modules/
