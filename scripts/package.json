@@ -4,13 +4,11 @@
   "description": "Dieses Repository enthält den Code für ..Linkliste..",
   "main": "read-google-spreadsheet.js",
   "dependencies": {
-    "csv-parse": "^4.8.3",
-    "electron": "^7.1.5",
-    "follow-redirects": "^1.12.1",
-    "googleapis": "^39.2.0",
-    "md5": "^2.2.1",
-    "node-server-screenshot": "^0.2.1",
-    "sharp": "^0.21.3"
+    "csv-parse": "^4.15.3",
+    "follow-redirects": "^1.13.3",
+    "md5": "^2.3.0",
+    "node-server-screenshot": "^0.2.4",
+    "sharp": "^0.31.0"
   },
   "scripts": {
     "generate": "node read-google-spreadsheet.js;node generate-thumbnails.js"

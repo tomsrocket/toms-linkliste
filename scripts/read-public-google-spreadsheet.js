@@ -7,15 +7,15 @@ const sharp = require('sharp');
 const csvParse = require('csv-parse')
 const screenshotApp = require("node-server-screenshot");
 
-const { promisify } = require('util')
-const readFileAsync = promisify(fs.readFile)
+const { promisify } = require('util');
+const readFileAsync = promisify(fs.readFile);
 const csvParseAsync = promisify(csvParse);
 
 
 
 // PREFERENCES / SETTINGS
 
-// screenshots  
+// screenshots
 var pageWidth = 1280;
 var pageHeight = 1380; // make longer screenshots so we can cut off the silly cookiehinweis
 
@@ -42,7 +42,7 @@ const httpsRequestAsync = async (url, method = 'GET', postData) => {
     const h = urlparts.shift();
     const path = urlparts.join('/');
     const [host, port] = h.split(':');
-  
+
     const params = {
         method,
         host,
@@ -51,28 +51,28 @@ const httpsRequestAsync = async (url, method = 'GET', postData) => {
     };
 
     console.log("request params", params)
-  
+
     return new Promise((resolve, reject) => {
       const req = lib.get(url, res => {
         if (res.statusCode < 200 || res.statusCode >= 300) {
           return reject(new Error(`Status Code: ${res.statusCode}`));
         }
-  
+
         const data = [];
-  
+
         res.on('data', chunk => {
           data.push(chunk);
         });
-  
+
         res.on('end', () => resolve(Buffer.concat(data).toString()));
       });
-  
+
       req.on('error', reject);
-  
+
       if (postData) {
         req.write(postData);
       }
-  
+
       req.end();
     });
   };
@@ -109,7 +109,7 @@ let lineCounter = 0;
             lineCounter += 1;
             if (lineCounter <= numRowsToProcess) {
                 await processRow(line).catch(function(err) {
-                    console.error(err);  
+                    console.error(err);
                     throw "Fehler";
                 });
             }
@@ -145,7 +145,7 @@ async function processRow(row) {
     const parts = date.match(/(\d+)/g);
     if (!parts) {
         console.log("SKIP because first column is not a date: " + row[0]);
-        return new Promise(function(resolve, reject) {resolve();});        
+        return new Promise(function(resolve, reject) {resolve();});
     }
 
     process.stdout.write(row[1] + " -> ");
@@ -176,21 +176,21 @@ ${desc}
 `;
 
     const filename = slug + ".md"
-    
+
     const outputFile = "../content/" + filename;
-    fs.writeFileSync(outputFile, content); 
+    fs.writeFileSync(outputFile, content);
     const filestats = fs.statSync(outputFile);
     if (!filestats.size) {
         console.log(err);
         return new Promise(function(resolve, reject) {reject(err);});
     }
 
-       
+
     const address = url;
     var largeScreenshotFile = "../images/large/" + slug + ".png";
     var publishedScreenshot = "../output/images/" + slug + ".jpg";
 
-    if (fs.existsSync(publishedScreenshot) && fs.statSync(publishedScreenshot).size > 50) {        
+    if (fs.existsSync(publishedScreenshot) && fs.statSync(publishedScreenshot).size > 50) {
         console.log("SKIP because published screenshot is there",  publishedScreenshot);
     } else if (fs.existsSync(largeScreenshotFile) && fs.statSync(largeScreenshotFile).size > 50) {
         console.log("SKIP because screenshot is there", largeScreenshotFile);
@@ -200,13 +200,13 @@ ${desc}
 
         // generate screenshot
         console.log("Generating screenshot: ", largeScreenshotFile);
-        await loadPage(address, largeScreenshotFile);     
+        await loadPage(address, largeScreenshotFile);
 
         // generate published thumbnail
         console.log("Generating screenshot: ", largeScreenshotFile);
         await convert(largeScreenshotFile, publishedScreenshot, { width: thumbnailWidth, height: 250 });
 
-    } 
+    }
     // We dont need to always return a promise. In an async funtion any non-promise-response will be wrapped in a resolved promise automagically.
 }
 
@@ -214,18 +214,18 @@ ${desc}
 
 /**
  * Take screenshot of page
- * @param {string} address 
- * @param {string} output 
+ * @param {string} address
+ * @param {string} output
  */
 async function loadPage(address, output)
 {
     console.log("Processing", address);
-    
+
     return new Promise(function(resolve, reject) {
- 
+
         screenshotApp.fromURL(address, output, {
             width: pageWidth,
-            height: pageHeight, 
+            height: pageHeight,
         }, function(){
             console.log("wrote " + output);
             resolve();
@@ -237,9 +237,9 @@ async function loadPage(address, output)
 
 /**
  * Create different image size
- * @param {*} inputFile 
- * @param {*} outputFile 
- * @param {*} resizeOptions 
+ * @param {*} inputFile
+ * @param {*} outputFile
+ * @param {*} resizeOptions
  */
 async function convert(inputFile, outputFile, resizeOptions) {
   return new Promise(function(resolve, reject) {
@@ -257,7 +257,7 @@ async function convert(inputFile, outputFile, resizeOptions) {
           .catch(function(err) {
               console.log("Error occured");
               reject(err);
-          });    
+          });
       });
 }
 
