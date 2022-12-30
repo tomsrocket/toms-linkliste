@@ -11,7 +11,7 @@
     "sharp": "^0.31.0"
   },
   "scripts": {
-    "generate": "node read-google-spreadsheet.js;node generate-thumbnails.js"
+    "generate": "node read-public-google-spreadsheet.js 2000"
   },
   "repository": {
     "type": "git",

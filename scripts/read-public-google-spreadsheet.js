@@ -9,6 +9,8 @@ const screenshotApp = require("node-server-screenshot");
 
 const { promisify } = require('util');
 const readFileAsync = promisify(fs.readFile);
+
+// Note: This won't work with csv-parse > v5
 const csvParseAsync = promisify(csvParse);
 
 

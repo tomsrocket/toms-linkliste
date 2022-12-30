@@ -1,8 +1,11 @@
+"use strict";
+
 const fs = require('fs');
 const md5 = require('md5');
 const readline = require('readline');
 const { google } = require('googleapis');
 var app = require("node-server-screenshot");
+const https = require ('https')
 
 
 var pageWidth = 1280;
@@ -33,7 +36,7 @@ let spreadsheetRange = "";
     fs.readFile('config/config.json', (err, content) => {
       if (err) return console.log('Error loading config file:', err);
       const config = JSON.parse(content);
-      spreadsheetId = config.spreadsheetId;
+      spreadsheetId = config.spreadsheetUrl;
       spreadsheetRange = config.spreadsheetRange;
       start();
     });
@@ -48,11 +51,25 @@ console.log("DONE");
 
 function start() {
   // Load client secrets from a local file.
-  fs.readFile('config/credentials.json', (err, content) => {
-    if (err) return console.log('Error loading client secret file:', err);
-    // Authorize a client with credentials, then call the Google Sheets API.
-    authorize(JSON.parse(content), listMajors);
-  });
+  https.get(spreadsheetId,
+    (resp) => {
+      let data = '';
+
+      // A chunk of data has been recieved.
+      resp.on('data', (chunk) => {
+          data += chunk;
+      });
+
+      // The whole response has been received. Print out the result.
+      resp.on('end', () => {
+        console.error("File was read:");
+        console.log(data);
+      });
+
+    }).on("error", (err) => {
+      console.error("Error parsing file:", err);
+    }
+  );
 }
 /**
  * Create an OAuth2 client with the given credentials, and then execute the
@@ -70,37 +87,6 @@ function authorize(credentials, callback) {
     if (err) return getNewToken(oAuth2Client, callback);
     oAuth2Client.setCredentials(JSON.parse(token));
     callback(oAuth2Client);
-  });
-}
-
-/**
- * Get and store new token after prompting for user authorization, and then
- * execute the given callback with the authorized OAuth2 client.
- * @param {google.auth.OAuth2} oAuth2Client The OAuth2 client to get token for.
- * @param {getEventsCallback} callback The callback for the authorized client.
- */
-function getNewToken(oAuth2Client, callback) {
-  const authUrl = oAuth2Client.generateAuthUrl({
-    access_type: 'offline',
-    scope: SCOPES,
-  });
-  console.log('Authorize this app by visiting this url:', authUrl);
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-  rl.question('Enter the code from that page here: ', (code) => {
-    rl.close();
-    oAuth2Client.getToken(code, (err, token) => {
-      if (err) return console.error('Error while trying to retrieve access token', err);
-      oAuth2Client.setCredentials(token);
-      // Store the token to disk for later program executions
-      fs.writeFile(TOKEN_PATH, JSON.stringify(token), (err) => {
-        if (err) console.error(err);
-        console.log('Token stored to', TOKEN_PATH);
-      });
-      callback(oAuth2Client);
-    });
   });
 }
 
@@ -181,19 +167,6 @@ async function processFiles(err, res) {
   }
 }
 
-
-/**
- * Prints the names and majors of students in a sample spreadsheet:
- * @see https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit
- * @param {google.auth.OAuth2} auth The authenticated Google OAuth client.
- */
-async function listMajors(auth) {
-  const sheets = google.sheets({version: 'v4', auth});
-  sheets.spreadsheets.values.get({
-    spreadsheetId: spreadsheetId,
-    range: spreadsheetRange,
-  }, processFiles);
-}
 
         
 async function loadPage(address, output)
