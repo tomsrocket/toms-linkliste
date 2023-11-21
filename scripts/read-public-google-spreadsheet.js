@@ -195,7 +195,12 @@ ${desc}
     if (fs.existsSync(publishedScreenshot) && fs.statSync(publishedScreenshot).size > 50) {
         console.log("SKIP because published screenshot is there",  publishedScreenshot);
     } else if (fs.existsSync(largeScreenshotFile) && fs.statSync(largeScreenshotFile).size > 50) {
-        console.log("SKIP because screenshot is there", largeScreenshotFile);
+        console.log("large screenshot is there", largeScreenshotFile);
+
+        // generate published thumbnail
+        console.log("Generating only small screenshot: ", publishedScreenshot);
+        await convert(largeScreenshotFile, publishedScreenshot, { width: thumbnailWidth, height: 250 });
+
     } else if (address.match(/\.pdf$/i)) {
         console.log("SKIP because TODO: PDF screenshots not implemented");
     } else {
@@ -205,7 +210,7 @@ ${desc}
         await loadPage(address, largeScreenshotFile);
 
         // generate published thumbnail
-        console.log("Generating screenshot: ", largeScreenshotFile);
+        console.log("Generating small screenshot: ", publishedScreenshot);
         await convert(largeScreenshotFile, publishedScreenshot, { width: thumbnailWidth, height: 250 });
 
     }
