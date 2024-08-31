@@ -11,6 +11,7 @@ PATH = 'content'
 TIMEZONE = 'Europe/Paris'
 
 DEFAULT_LANG = 'de'
+LOCALE = 'de_DE'   # On Unix/Linux
 
 #THEME = 'themes/pelican-alchemy/alchemy'
 THEME = 'themes/pelican-bold-tom'
