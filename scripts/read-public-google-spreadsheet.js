@@ -190,7 +190,7 @@ ${desc}
 
     const address = url;
     var largeScreenshotFile = "../images/large/" + slug + ".png";
-    var publishedScreenshot = "../output/images/" + slug + ".jpg";
+    var publishedScreenshot = "../images/medium/" + slug + ".jpg";
 
     if (fs.existsSync(publishedScreenshot) && fs.statSync(publishedScreenshot).size > 50) {
         console.log("SKIP because published screenshot is there",  publishedScreenshot);
@@ -233,6 +233,7 @@ async function loadPage(address, output)
         screenshotApp.fromURL(address, output, {
             width: pageWidth,
             height: pageHeight,
+            waitMilliseconds: 5000
         }, function(){
             console.log("wrote " + output);
             resolve();
