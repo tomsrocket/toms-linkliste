@@ -3,9 +3,9 @@
 const fs = require('fs');
 const md5 = require('md5');
 const { http, https } = require('follow-redirects');
-const sharp = require('sharp');
+const sharp = require('sharp'); // resize images
 const csvParse = require('csv-parse')
-const screenshotApp = require("node-server-screenshot");
+const puppeteer = require("puppeteer"); // take screenshots
 
 const { promisify } = require('util');
 const readFileAsync = promisify(fs.readFile);
@@ -18,12 +18,12 @@ const csvParseAsync = promisify(csvParse);
 // PREFERENCES / SETTINGS
 
 // screenshots
-var pageWidth = 1280;
-var pageHeight = 1380; // make longer screenshots so we can cut off the silly cookiehinweis
+const pageWidth = 1280;
+const pageHeight = 1380;
 
 // preview images
 const thumbnailWidth = 350;
-const bigWidth = 800;
+const thumbnailheight = 350;
 const jpgQuality = 65;
 
 
@@ -199,10 +199,10 @@ ${desc}
 
         // generate published thumbnail
         console.log("Generating only small screenshot: ", publishedScreenshot);
-        await convert(largeScreenshotFile, publishedScreenshot, { width: thumbnailWidth, height: 250 });
+        await convert(largeScreenshotFile, publishedScreenshot);
 
-    } else if (address.match(/\.pdf$/i)) {
-        console.log("SKIP because TODO: PDF screenshots not implemented");
+//    } else if (address.match(/\.pdf$/i)) {
+//        console.log("SKIP because TODO: PDF screenshots not implemented");
     } else {
 
         // generate screenshot
@@ -211,7 +211,7 @@ ${desc}
 
         // generate published thumbnail
         console.log("Generating small screenshot: ", publishedScreenshot);
-        await convert(largeScreenshotFile, publishedScreenshot, { width: thumbnailWidth, height: 250 });
+        await convert(largeScreenshotFile, publishedScreenshot);
 
     }
     // We dont need to always return a promise. In an async funtion any non-promise-response will be wrapped in a resolved promise automagically.
@@ -226,18 +226,49 @@ ${desc}
  */
 async function loadPage(address, output)
 {
-    console.log("Processing", address);
+    // wait to take the screenshot. So user can close cookie popups
+    const pause = 5000;
+    const wait = async () => {
+        if (pause) {
+        console.log(`⏳ Waiting ${pause}ms…`);
+        await new Promise(resolve => setTimeout(resolve, pause));
+        }
+    };
+    
+    console.log("Processingg", address);
 
     return new Promise(function(resolve, reject) {
 
-        screenshotApp.fromURL(address, output, {
-            width: pageWidth,
-            height: pageHeight,
-            waitMilliseconds: 5000
-        }, function(){
-            console.log("wrote " + output);
-            resolve();
-        });
+        puppeteer
+            .launch({
+                defaultViewport: {
+                    width: pageWidth,
+                    height: pageHeight,
+                },
+                ignoreHTTPSErrors: true,
+                acceptInsecureCerts: true,
+                args: [
+                  "--allow-running-insecure-content",
+                  "--ignore-certificate-errors",
+                  "--ignore-certificate-errors-spki-list",
+                  "--enable-features=NetworkService",
+                ],
+                headless: false
+            })
+            .then(async (browser) => {
+                    const page = await browser.newPage();
+                    await page.setUserAgent('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36');
+                    await page.goto(address);
+                    await page.emulateMediaFeatures([{
+                        name: 'prefers-color-scheme', value: 'light' }]);
+                      await wait(); // Wait, in case the system preference was dark mode.
+                    await page.screenshot({ path: output });
+                    await browser.close();
+                    console.log("done. wrote " + output);
+                    resolve();
+                }, 
+                function() {console.error("SCREENSHOT FAILED"); reject();}
+            );
     });
 }
 
@@ -249,8 +280,9 @@ async function loadPage(address, output)
  * @param {*} outputFile
  * @param {*} resizeOptions
  */
-async function convert(inputFile, outputFile, resizeOptions) {
-  return new Promise(function(resolve, reject) {
+async function convert(inputFile, outputFile) {
+    const resizeOptions = { width: thumbnailWidth, height: thumbnailheight }
+    return new Promise(function(resolve, reject) {
       sharp(inputFile)
       .resize(resizeOptions)
       .jpeg({
