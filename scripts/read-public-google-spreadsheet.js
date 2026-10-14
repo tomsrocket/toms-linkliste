@@ -2,16 +2,14 @@
 
 const fs = require('fs');
 const md5 = require('md5');
-const { http, https } = require('follow-redirects');
+const http = require('http');
+const https = require('https');
 const sharp = require('sharp'); // resize images
-const csvParse = require('csv-parse')
 const puppeteer = require("puppeteer"); // take screenshots
 
 const { promisify } = require('util');
 const readFileAsync = promisify(fs.readFile);
 
-// Note: This won't work with csv-parse > v5
-const csvParseAsync = promisify(csvParse);
 
 
 
@@ -37,50 +35,95 @@ console.log("Processing Rows:", numRowsToProcess);
 console.log("Use first command line argument for number of rows");
 
 
-// helper function for synchronous file reading
-const httpsRequestAsync = async (url, method = 'GET', postData) => {
-    const lib = url.startsWith('https://') ? https : http;
-    const urlparts = url.split('://')[1].split('/');
-    const h = urlparts.shift();
-    const path = urlparts.join('/');
-    const [host, port] = h.split(':');
-
-    const params = {
-        method,
-        host,
-        port: port || url.startsWith('https://') ? 443 : 80,
-        path: path || '/',
-    };
-
-    console.log("request params", params)
-
-    return new Promise((resolve, reject) => {
-      const req = lib.get(url, res => {
-        if (res.statusCode < 200 || res.statusCode >= 300) {
-          return reject(new Error(`Status Code: ${res.statusCode}`));
+// Fetch only the configured endpoint; do not forward credentials through redirects.
+async function loadTriliumSpreadsheet(config) {
+    for (const key of ['triliumApiUrl', 'triliumNoteId', 'triliumApiToken']) {
+        if (typeof config[key] !== 'string' || !config[key].trim()) {
+            throw new Error(`Missing config value: ${key}`);
         }
+    }
+    const base = new URL(config.triliumApiUrl);
+    if (!['http:', 'https:'].includes(base.protocol) || base.username || base.password) {
+        throw new Error('Invalid Trilium API URL');
+    }
+    base.pathname = base.pathname.replace(/\/$/, '') + '/';
+    const url = new URL(`notes/${encodeURIComponent(config.triliumNoteId)}/content`, base);
+    const headers = { Authorization: config.triliumApiToken };
+    if (config.basicAuthUsername || config.basicAuthPassword) {
+        if (!config.basicAuthUsername || !config.basicAuthPassword) {
+            throw new Error('Both Basic Auth config values are required');
+        }
+        headers.Authorization = 'Basic ' + Buffer.from(
+            `${config.basicAuthUsername}:${config.basicAuthPassword}`
+        ).toString('base64');
+        headers['X-Trilium-Token'] = config.triliumApiToken;
+    }
 
-        const data = [];
-
-        res.on('data', chunk => {
-          data.push(chunk);
+    const data = await new Promise((resolve, reject) => {
+        const lib = url.protocol === 'https:' ? https : http;
+        const req = lib.get(url, { headers, timeout: 30000 }, res => {
+            if (res.statusCode !== 200) {
+                res.resume();
+                reject(new Error(`Trilium request failed: HTTP ${res.statusCode}`));
+                return;
+            }
+            const chunks = [];
+            res.on('data', chunk => chunks.push(chunk));
+            res.on('error', () => reject(new Error('Trilium response interrupted')));
+            res.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
         });
-
-        res.on('end', () => resolve(Buffer.concat(data).toString()));
-      });
-
-      req.on('error', reject);
-
-      if (postData) {
-        req.write(postData);
-      }
-
-      req.end();
+        req.on('timeout', () => req.destroy(new Error('Request timeout')));
+        req.on('error', err => reject(new Error(`Trilium request failed: ${err.code || 'network error or timeout'}`)));
     });
-  };
+    let spreadsheet;
+    try {
+        spreadsheet = JSON.parse(data);
+    } catch {
+        throw new Error('Trilium returned invalid JSON');
+    }
+    return spreadsheetRows(spreadsheet);
+}
 
-let spreadsheetUrl = '';
-let spreadsheetRange = "";
+// Trilium 0.105 stores a Univer workbook inside a versioned wrapper.
+function spreadsheetRows(spreadsheet) {
+    if (spreadsheet.version !== 1 || !spreadsheet.workbook?.sheets) {
+        throw new Error('Unsupported Trilium spreadsheet format');
+    }
+    const sheets = Object.values(spreadsheet.workbook.sheets)
+        .filter(sheet => sheet.name === 'Linkliste');
+    if (sheets.length !== 1 || !sheets[0].cellData) {
+        throw new Error('Expected exactly one spreadsheet sheet named Linkliste');
+    }
+    const cells = sheets[0].cellData;
+    const rowIndexes = Object.keys(cells).map(Number).filter(Number.isInteger);
+    const lastRow = Math.max(-1, ...rowIndexes);
+    const firstRow = rowIndexes.length ? Math.min(...rowIndexes) : 0;
+    return Array.from({ length: lastRow - firstRow + 1 }, (_, offset) => {
+        const rowIndex = firstRow + offset;
+        return Array.from({ length: 7 }, (_, column) => {
+            const cell = cells[rowIndex]?.[column];
+            if (!cell) return '';
+            if (column === 0 && typeof cell.v === 'number') {
+                // Spreadsheet dates count days from 1899-12-30.
+                const date = new Date(Date.UTC(1899, 11, 30) + Math.floor(cell.v) * 86400000);
+                if (Number.isNaN(date.getTime())) throw new Error(`Invalid date in row ${rowIndex + 1}`);
+                return `${date.getUTCDate()}.${date.getUTCMonth() + 1}.${date.getUTCFullYear()}`;
+            }
+            const body = cell.p?.body;
+            if (column === 1 && body) {
+                const link = body.customRanges?.find(range => range.properties?.url);
+                if (link) return link.properties.url;
+            }
+            let value = String(cell.v ?? body?.dataStream?.replace(/\r?\n$/, '') ?? '');
+            if (column === 0) {
+                const iso = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                if (iso) value = `${iso[3]}.${iso[2]}.${iso[1]}`;
+            }
+            return value;
+        });
+    });
+}
+
 let lineCounter = 0;
 
 /**
@@ -89,24 +132,12 @@ let lineCounter = 0;
 (async () => {
 
     try {
-        // Load spreadsheet Url from config file
         const content = await readFileAsync('config/config.json');
         const config = JSON.parse(content);
-        spreadsheetUrl = config.spreadsheetCsvUrlPublic;
-        spreadsheetRange = config.spreadsheetRange;
-        console.log("Spreadsheet url:", spreadsheetUrl)
+        const parsed = await loadTriliumSpreadsheet(config);
+        console.log('Found lines:', parsed.length);
 
-        // Read url content
-        const data = await httpsRequestAsync(
-            spreadsheetUrl,
-        );
-        console.log("Downloaded bytes:", data.length);
-
-        // Parse csv into output array
-        const parsed = await csvParseAsync(data);
-        console.log("Found lines:", parsed.length);
-
-        // Process every line of CSV file
+        // Keep the existing row order, row limit and processing behavior.
         for (const line of parsed) {
             lineCounter += 1;
             if (lineCounter <= numRowsToProcess) {
@@ -118,7 +149,8 @@ let lineCounter = 0;
         }
 
     } catch (err) {
-        console.error("Error in main function:", err);
+        console.error("Error in main function:", err.message || err);
+        process.exitCode = 1;
     }
 
     console.log("");

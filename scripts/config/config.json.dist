@@ -1,4 +1,9 @@
 { 
-    "spreadsheetCsvUrlPublic": "https://docs.google.com/spreadsheets/d/e/1BLAA-20jfadFJM2lk2029497kwunvdDDESS-moreStrings4329_fjehjj/pub?gid=0&single=true&output=csv",
+    "spreadsheetCsvUrlPublic": "https://docs.google.com/spreadsheets/d/e/1moreStrings4329_fjehjj/pub?gid=0&single=true&output=csv",
     "spreadsheetRange": ""
+    "triliumApiToken": "",
+    "triliumApiUrl": "",
+    "triliumNoteId": "",
+    "basicAuthUsername": "",
+    "basicAuthPassword": ""    
 }
